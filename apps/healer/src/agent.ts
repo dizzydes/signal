@@ -35,8 +35,7 @@ export async function runAgentInSandbox(input: {
         systemPrompt: SYSTEM_PROMPT,
         permissionMode: "acceptEdits",
         maxTurns: 12,
-        allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep", "Skill"],
-        settingSources: ["user", "project"],
+        allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
         abortController: controller,
         stderr: (data: string) => {
           process.stderr.write(`[agent-stderr] ${data}`);

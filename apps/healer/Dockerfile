@@ -14,6 +14,4 @@ COPY src ./src
 
 RUN npm run build
 
-RUN npx -y skills add railwayapp/railway-skills || echo "[build] skills add failed, continuing without"
-
 CMD ["npm", "start"]
