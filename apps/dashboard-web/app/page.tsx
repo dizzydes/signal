@@ -27,29 +27,11 @@ async function loadTimeline(): Promise<TimelineRow[]> {
   );
 }
 
-async function loadRailwayCommandCount(): Promise<number> {
-  const rows = await query<{ n: string }>(
-    `SELECT COALESCE(SUM(
-       (SELECT COUNT(*) FROM jsonb_array_elements(commands) c
-        WHERE c->>'command' LIKE 'railway%')
-     ), 0)::text AS n
-     FROM transcripts`
-  );
-  return Number(rows[0]?.n ?? 0);
-}
-
 export default async function HomePage() {
   const defaultPatientUrl = process.env.PATIENT_WEB_URL ?? "http://localhost:3001";
-  const [rows, railwayCount] = await Promise.all([
-    loadTimeline().catch(() => [] as TimelineRow[]),
-    loadRailwayCommandCount().catch(() => 0),
-  ]);
+  const rows = await loadTimeline().catch(() => [] as TimelineRow[]);
 
   return (
-    <DashboardClient
-      initialRows={rows}
-      initialRailwayCount={railwayCount}
-      defaultPatientUrl={defaultPatientUrl}
-    />
+    <DashboardClient initialRows={rows} defaultPatientUrl={defaultPatientUrl} />
   );
 }

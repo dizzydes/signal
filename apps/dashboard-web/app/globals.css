@@ -62,11 +62,15 @@ input[type="text"], textarea {
   background: var(--surface);
 }
 .topbar .brand { font-weight: 600; font-size: 16px; }
-.topbar .counter {
-  color: var(--muted);
-  font-size: 12px;
+.brand-railway {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--railway);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
-.topbar .counter strong { color: var(--railway); font-weight: 600; }
+.brand-railway svg { display: block; }
 
 .layout {
   display: grid;

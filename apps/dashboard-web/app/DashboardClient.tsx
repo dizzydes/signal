@@ -11,14 +11,18 @@ const MAX_CLIENT_EVENTS = 200;
 
 export function DashboardClient(props: {
   initialRows: TimelineRow[];
-  initialRailwayCount: number;
   defaultPatientUrl: string;
 }) {
   const [rows, setRows] = useState(props.initialRows);
-  const [railwayCount, setRailwayCount] = useState(props.initialRailwayCount);
   const [clientEvents, setClientEvents] = useState<ClientEvent[]>([]);
-  // After a successful merge, pin the iframe to production until a newer signal fires.
-  const [productionPinAfterId, setProductionPinAfterId] = useState<number | null>(null);
+  // Pin the iframe to production until a newer signal fires. Initialized to the
+  // max existing id so page load always starts on production (not an old PR preview).
+  const [productionPinAfterId, setProductionPinAfterId] = useState<number | null>(
+    () => {
+      const max = props.initialRows.reduce((m, r) => Math.max(m, r.id), 0);
+      return max > 0 ? max : null;
+    }
+  );
 
   const addEvent = useCallback((kind: "action" | "error", text: string) => {
     setClientEvents((prev) =>
@@ -37,13 +41,9 @@ export function DashboardClient(props: {
       try {
         const res = await fetch("/api/signals", { cache: "no-store" });
         if (!res.ok) return;
-        const data = (await res.json()) as {
-          rows: TimelineRow[];
-          railwayCommandCount: number;
-        };
+        const data = (await res.json()) as { rows: TimelineRow[] };
         if (cancelled) return;
         setRows(data.rows);
-        setRailwayCount(data.railwayCommandCount);
       } catch {
         /* ignore transient */
       }
@@ -84,8 +84,17 @@ export function DashboardClient(props: {
     <>
       <div className="topbar">
         <div className="brand">Autoheal</div>
-        <div className="counter">
-          Railway commands executed by agents: <strong>{railwayCount}</strong>
+        <div className="brand-railway" aria-label="Railway">
+          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="15" fill="var(--railway)" />
+            <path
+              d="M9 13.5h14M10.5 17h11M12 20.5h8"
+              stroke="#0b0b0f"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span>Railway</span>
         </div>
       </div>
       <div className="layout">
