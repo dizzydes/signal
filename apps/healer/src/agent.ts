@@ -35,7 +35,8 @@ export async function runAgentInSandbox(input: {
         systemPrompt: SYSTEM_PROMPT,
         permissionMode: "acceptEdits",
         maxTurns: 12,
-        allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
+        allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep", "Skill"],
+        settingSources: ["user", "project"],
         abortController: controller,
         hooks: {
           PreToolUse: [
