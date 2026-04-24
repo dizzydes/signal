@@ -14,13 +14,6 @@ export interface TimelineRow extends SignalRow {
   transcript_commands: TranscriptCommand[] | null;
 }
 
-function cmdClass(command: string): string {
-  if (command.startsWith("railway")) return "cmd railway";
-  if (command.startsWith("gh ")) return "cmd gh";
-  if (command.startsWith("git ")) return "cmd git";
-  return "cmd";
-}
-
 const STAGES: Array<{ status: string; label: string }> = [
   { status: "pending", label: "queued" },
   { status: "classifying", label: "classifying" },
@@ -36,10 +29,10 @@ function stageIndex(status: string): number {
 
 export function Timeline({
   rows,
-  onViewPatient,
+  onEvent,
 }: {
   rows: TimelineRow[];
-  onViewPatient: (url: string, label: string) => void;
+  onEvent?: (kind: "action" | "error", text: string) => void;
 }) {
   if (rows.length === 0) {
     return <p style={{ color: "var(--muted)" }}>No signals yet. Trigger one from the left.</p>;
@@ -47,7 +40,7 @@ export function Timeline({
   return (
     <>
       {rows.map((r) => (
-        <TimelineEntry key={r.id} row={r} onViewPatient={onViewPatient} />
+        <TimelineEntry key={r.id} row={r} onEvent={onEvent} />
       ))}
     </>
   );
@@ -55,30 +48,37 @@ export function Timeline({
 
 function TimelineEntry({
   row,
-  onViewPatient,
+  onEvent,
 }: {
   row: TimelineRow;
-  onViewPatient: (url: string, label: string) => void;
+  onEvent?: (kind: "action" | "error", text: string) => void;
 }) {
-  const [showTranscript, setShowTranscript] = useState(false);
   const [merging, setMerging] = useState(false);
 
   async function merge() {
     if (!row.pr_number) return;
     setMerging(true);
+    onEvent?.("action", `merge PR #${row.pr_number}`);
     try {
-      await fetch("/api/merge", {
+      const res = await fetch("/api/merge", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pr_number: row.pr_number }),
       });
+      const j = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (res.ok) {
+        onEvent?.("action", `PR #${row.pr_number} ${j.message ?? "merged"}`);
+      } else {
+        onEvent?.("error", `merge PR #${row.pr_number} failed: ${j.error ?? `HTTP ${res.status}`}`);
+      }
+    } catch (err) {
+      onEvent?.("error", `merge PR #${row.pr_number} failed: ${(err as Error).message}`);
     } finally {
       setMerging(false);
     }
   }
 
   const title = describeSignal(row);
-  const hasTranscript = Array.isArray(row.transcript_commands) && row.transcript_commands.length > 0;
   const isTerminal = row.status === "merged" || row.status === "ignored" || row.status === "failed";
   const currentStageIdx = stageIndex(row.status);
   const railwayCmdCount =
@@ -145,56 +145,15 @@ function TimelineEntry({
         {row.merged_at && <span className="pill ok">merged</span>}
       </div>
 
-      <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {row.preview_url && row.branch && (
-          <button
-            onClick={() =>
-              onViewPatient(
-                previewPatientUrl(row.preview_url!) ?? row.preview_url!,
-                `PR #${row.pr_number}`
-              )
-            }
-          >
-            view patient here
-          </button>
-        )}
-        {hasTranscript && (
-          <button onClick={() => setShowTranscript((s) => !s)}>
-            {showTranscript ? "hide" : "show"} transcript
-          </button>
-        )}
-        {row.pr_number && !row.merged_at && (
+      {row.pr_number && !row.merged_at && (
+        <div style={{ marginTop: 10 }}>
           <button className="primary" onClick={merge} disabled={merging}>
             {merging ? "merging…" : "merge"}
           </button>
-        )}
-      </div>
-
-      {showTranscript && hasTranscript && (
-        <div className="transcript">
-          {row.transcript_commands!.map((c, i) => (
-            <div key={i}>
-              <div className={cmdClass(c.command)}>$ {c.command}</div>
-              {c.stdout && <div className="out">{c.stdout.slice(0, 800)}</div>}
-              {c.stderr && <div className="out" style={{ color: "var(--err)" }}>{c.stderr.slice(0, 800)}</div>}
-            </div>
-          ))}
         </div>
       )}
     </div>
   );
-}
-
-function previewPatientUrl(previewUrl: string): string | null {
-  // Railway PR env preview URL is for dashboard-web; swap the subdomain to patient-web.
-  try {
-    const u = new URL(previewUrl);
-    const m = u.host.match(/^(dashboard-web)-(.+)$/);
-    if (m) return `${u.protocol}//patient-web-${m[2]}`;
-    return previewUrl;
-  } catch {
-    return null;
-  }
 }
 
 function statusClass(s: string): string {

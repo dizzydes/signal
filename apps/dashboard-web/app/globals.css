@@ -70,9 +70,10 @@ input[type="text"], textarea {
 
 .layout {
   display: grid;
-  grid-template-columns: 360px 1fr 420px;
+  grid-template-columns: 340px 1fr 440px;
   gap: 0;
-  height: calc(100vh - 57px);
+  height: calc(60vh - 57px);
+  min-height: 360px;
 }
 .panel {
   border-right: 1px solid var(--border);
@@ -147,6 +148,50 @@ input[type="text"], textarea {
   0%, 100% { box-shadow: 0 0 0 0 rgba(200, 121, 255, 0.6); }
   50% { box-shadow: 0 0 0 6px rgba(200, 121, 255, 0); }
 }
+
+.terminal-log {
+  border-top: 1px solid var(--border);
+  background: #05050a;
+  color: var(--fg);
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 14px 18px 18px;
+  height: calc(40vh);
+  overflow-y: auto;
+}
+.terminal-log::before {
+  content: "▸ live log";
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.log-line {
+  display: grid;
+  grid-template-columns: 88px 18px 1fr;
+  gap: 8px;
+  white-space: pre-wrap;
+  padding: 1px 0;
+}
+.log-ts { color: var(--muted); font-size: 10px; padding-top: 2px; }
+.log-prefix { color: var(--muted); text-align: center; }
+.log-text { color: var(--fg); }
+.log-muted { color: var(--muted); font-style: italic; }
+
+.log-action .log-text, .log-action .log-prefix { color: #fef3c7; }
+.log-signal .log-text, .log-signal .log-prefix { color: #fbbf24; }
+.log-decision .log-text, .log-decision .log-prefix { color: #93c5fd; }
+.log-stage .log-text, .log-stage .log-prefix { color: var(--muted); }
+.log-railway .log-text, .log-railway .log-prefix { color: var(--railway); }
+.log-gh .log-text, .log-gh .log-prefix { color: var(--gh); }
+.log-git .log-text, .log-git .log-prefix { color: var(--git); }
+.log-cmd .log-text, .log-cmd .log-prefix { color: #d1d5db; }
+.log-pr .log-text, .log-pr .log-prefix { color: var(--gh); }
+.log-ok .log-text, .log-ok .log-prefix { color: var(--ok); }
+.log-err .log-text, .log-err .log-prefix { color: var(--err); }
 
 .timeline-entry {
   border-bottom: 1px solid var(--border);

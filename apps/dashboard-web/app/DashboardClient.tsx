@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BreakControls } from "./BreakControls";
 import { Timeline, TimelineRow } from "./Timeline";
 import { PatientPanel } from "./PatientPanel";
+import { TerminalLog, ClientEvent } from "./TerminalLog";
 
 const POLL_MS = 3000;
+const MAX_CLIENT_EVENTS = 200;
 
 export function DashboardClient(props: {
   initialRows: TimelineRow[];
@@ -14,8 +16,13 @@ export function DashboardClient(props: {
 }) {
   const [rows, setRows] = useState(props.initialRows);
   const [railwayCount, setRailwayCount] = useState(props.initialRailwayCount);
-  const [patientUrl, setPatientUrl] = useState(props.defaultPatientUrl);
-  const [patientLabel, setPatientLabel] = useState<string>("production");
+  const [clientEvents, setClientEvents] = useState<ClientEvent[]>([]);
+
+  const addEvent = useCallback((kind: "action" | "error", text: string) => {
+    setClientEvents((prev) =>
+      [...prev, { ts: new Date().toISOString(), kind, text }].slice(-MAX_CLIENT_EVENTS)
+    );
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,16 +48,6 @@ export function DashboardClient(props: {
     };
   }, []);
 
-  function viewPatientAt(url: string, label: string) {
-    setPatientUrl(url);
-    setPatientLabel(label);
-  }
-
-  function resetPatient() {
-    setPatientUrl(props.defaultPatientUrl);
-    setPatientLabel("production");
-  }
-
   return (
     <>
       <div className="topbar">
@@ -62,19 +59,15 @@ export function DashboardClient(props: {
       <div className="layout">
         <div className="panel">
           <h2>Break it</h2>
-          <BreakControls />
+          <BreakControls onEvent={addEvent} />
         </div>
-        <PatientPanel
-          url={patientUrl}
-          label={patientLabel}
-          onReset={resetPatient}
-          isDefault={patientUrl === props.defaultPatientUrl}
-        />
+        <PatientPanel url={props.defaultPatientUrl} />
         <div className="panel">
-          <h2>Timeline</h2>
-          <Timeline rows={rows} onViewPatient={viewPatientAt} />
+          <h2>Signals</h2>
+          <Timeline rows={rows} onEvent={addEvent} />
         </div>
       </div>
+      <TerminalLog rows={rows} clientEvents={clientEvents} />
     </>
   );
 }
