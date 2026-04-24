@@ -68,43 +68,53 @@ async function saveTranscript(
 }
 
 async function handle(signal: SignalRow): Promise<void> {
-  console.log(`[healer] handling signal ${signal.id} source=${signal.source}`);
-  await updateStatus(signal.id, "classifying");
+  const tag = `[healer/${signal.id}]`;
+  console.log(`${tag} handling source=${signal.source}`);
+  let cls: Awaited<ReturnType<typeof classify>> | null = null;
+  let sandbox: Awaited<ReturnType<typeof prepareSandbox>> | null = null;
 
-  const cls = await classify(signal);
-  console.log(`[healer] signal ${signal.id} classified as ${cls}`);
-
-  if (cls === "ignore") {
-    await query(
-      `UPDATE signals SET status = 'ignored', classification = 'ignore', resolved_at = now() WHERE id = $1`,
-      [signal.id]
-    );
-    return;
-  }
-
-  await updateStatus(signal.id, "healing", cls);
-
-  const sandbox = await prepareSandbox();
   try {
+    await updateStatus(signal.id, "classifying");
+    cls = await classify(signal);
+    console.log(`${tag} classified=${cls}`);
+
+    if (cls === "ignore") {
+      await query(
+        `UPDATE signals SET status = 'ignored', classification = 'ignore', resolved_at = now() WHERE id = $1`,
+        [signal.id]
+      );
+      return;
+    }
+
+    await updateStatus(signal.id, "healing", cls);
+
+    console.log(`${tag} preparing sandbox`);
+    sandbox = await prepareSandbox();
+    console.log(`${tag} sandbox ready at ${sandbox.dir}`);
+
+    console.log(`${tag} invoking agent`);
     const agentResult = await runAgentInSandbox({
       cwd: sandbox.dir,
       signal,
     });
+    console.log(`${tag} agent done commands=${agentResult.commands.length} diff=${agentResult.diff.length}b`);
 
     if (!agentResult.diff || agentResult.diff.trim().length === 0) {
       await saveTranscript(signal.id, agentResult.commands, null, agentResult.reasoning);
       await updateStatus(signal.id, "failed", cls);
-      console.log(`[healer] signal ${signal.id} produced no diff`);
+      console.log(`${tag} produced no diff`);
       return;
     }
 
     const branch = `autoheal/signal-${signal.id}`;
+    console.log(`${tag} pushing branch=${branch}`);
     await applyAndPush(sandbox, {
       branch,
       commitMessage: `autoheal: ${truncate(describeSignal(signal), 60)}`,
       diff: agentResult.diff,
     });
 
+    console.log(`${tag} opening PR`);
     const pr = await openPullRequest({
       branch,
       title: `autoheal: ${describeSignal(signal)}`,
@@ -118,12 +128,20 @@ async function handle(signal: SignalRow): Promise<void> {
     );
     await saveTranscript(signal.id, agentResult.commands, agentResult.diff, agentResult.reasoning);
     await updateStatus(signal.id, "pr_open", cls);
-    console.log(`[healer] signal ${signal.id} -> PR #${pr.number}`);
+    console.log(`${tag} PR #${pr.number} opened`);
   } catch (err) {
-    console.error(`[healer] signal ${signal.id} failed`, err);
-    await updateStatus(signal.id, "failed", cls);
+    console.error(`${tag} failed`, err);
+    try {
+      await updateStatus(signal.id, "failed", cls ?? null);
+    } catch (updateErr) {
+      console.error(`${tag} could not update status to failed`, updateErr);
+    }
   } finally {
-    await cleanupSandbox(sandbox);
+    if (sandbox) {
+      await cleanupSandbox(sandbox).catch((err) =>
+        console.error(`${tag} cleanup failed`, err)
+      );
+    }
   }
 }
 
