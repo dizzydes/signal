@@ -117,6 +117,17 @@ input[type="text"], textarea {
 .patient-tag-value.ok { color: var(--ok); }
 .patient-tag-value.railway { color: var(--railway); }
 .patient-tag-host { color: var(--muted); margin-left: 8px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
+.tag-reload {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tag-reload:hover { color: var(--railway); border-color: var(--railway); }
 
 .stage-track {
   display: flex;
