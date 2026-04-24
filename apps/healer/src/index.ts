@@ -111,7 +111,6 @@ async function handle(signal: SignalRow): Promise<void> {
     await applyAndPush(sandbox, {
       branch,
       commitMessage: `autoheal: ${truncate(describeSignal(signal), 60)}`,
-      diff: agentResult.diff,
     });
 
     console.log(`${tag} opening PR`);

@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { execFile as execFileCb, spawn } from "node:child_process";
+import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
@@ -39,15 +39,9 @@ export async function prepareSandbox(): Promise<Sandbox> {
 
 export async function applyAndPush(
   sandbox: Sandbox,
-  input: { branch: string; commitMessage: string; diff: string }
+  input: { branch: string; commitMessage: string }
 ): Promise<void> {
   await execFile("git", ["-C", sandbox.dir, "checkout", "-b", input.branch]);
-
-  const applied = await runWithStdin("git", ["-C", sandbox.dir, "apply", "--whitespace=nowarn", "-"], input.diff);
-  if (applied.code !== 0) {
-    throw new Error(`git apply failed (${applied.code}): ${applied.stderr}`);
-  }
-
   await execFile("git", ["-C", sandbox.dir, "add", "-A"]);
   await execFile("git", ["-C", sandbox.dir, "commit", "-m", input.commitMessage]);
   await execFile("git", ["-C", sandbox.dir, "push", "-u", "origin", input.branch]);
@@ -55,21 +49,4 @@ export async function applyAndPush(
 
 export async function cleanupSandbox(sandbox: Sandbox): Promise<void> {
   await rm(sandbox.dir, { recursive: true, force: true }).catch(() => {});
-}
-
-function runWithStdin(
-  cmd: string,
-  args: string[],
-  input: string
-): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: ["pipe", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (d) => (stdout += d.toString()));
-    child.stderr.on("data", (d) => (stderr += d.toString()));
-    child.on("close", (code) => resolve({ code: code ?? 1, stdout, stderr }));
-    child.stdin.write(input);
-    child.stdin.end();
-  });
 }
