@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Fragment, type ReactElement } from "react";
 import type { TimelineRow } from "./Timeline";
 
 export interface ClientEvent {
@@ -11,8 +11,30 @@ export interface ClientEvent {
 
 interface LogLine {
   ts: string;
-  kind: "action" | "signal" | "decision" | "stage" | "cmd" | "railway-cmd" | "gh-cmd" | "git-cmd" | "pr" | "preview" | "merge" | "error";
+  kind:
+    | "action"
+    | "signal"
+    | "decision"
+    | "thought"
+    | "cmd"
+    | "railway-cmd"
+    | "gh-cmd"
+    | "git-cmd"
+    | "pr"
+    | "preview"
+    | "rebuild"
+    | "merge"
+    | "error";
   text: string;
+}
+
+function splitThought(reasoning: string): string[] {
+  // Split on blank lines or "1. " style enumerators. Keep chunks concise.
+  return reasoning
+    .split(/\n{2,}/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 6);
 }
 
 function rowsToLines(rows: TimelineRow[]): LogLine[] {
@@ -32,15 +54,26 @@ function rowsToLines(rows: TimelineRow[]): LogLine[] {
         text: `${id} classified  → ${r.classification}`,
       });
     }
+    if (r.transcript_reasoning) {
+      const chunks = splitThought(r.transcript_reasoning);
+      chunks.forEach((chunk, i) => {
+        out.push({
+          ts: r.claimed_at ? new Date(r.claimed_at).toISOString() : createdAt,
+          kind: "thought",
+          text: `${id} claude: ${chunk.slice(0, 240)}${chunk.length > 240 ? "…" : ""}`,
+        });
+      });
+    }
     if (r.transcript_commands && r.transcript_commands.length > 0) {
       for (const c of r.transcript_commands) {
         const prefix = c.command.split(/\s+/)[0];
         const kind: LogLine["kind"] =
           prefix === "railway" ? "railway-cmd" : prefix === "gh" ? "gh-cmd" : prefix === "git" ? "git-cmd" : "cmd";
+        const cmd = c.command.length > 160 ? c.command.slice(0, 160) + "…" : c.command;
         out.push({
           ts: c.started_at || createdAt,
           kind,
-          text: `${id} $ ${c.command.length > 140 ? c.command.slice(0, 140) + "…" : c.command}`,
+          text: `${id} $ ${cmd}`,
         });
       }
     }
@@ -58,7 +91,12 @@ function rowsToLines(rows: TimelineRow[]): LogLine[] {
       out.push({
         ts: createdAt,
         kind: "preview",
-        text: `${id} preview env ready  ${r.preview_url}  rebuilt=${rebuilt} skipped=${skipped} build=${ms}`,
+        text: `${id} Railway preview env ready  ${r.preview_url}`,
+      });
+      out.push({
+        ts: createdAt,
+        kind: "rebuild",
+        text: `${id} Railway Focused PR Env  rebuilt=${rebuilt} skipped=${skipped} build=${ms}`,
       });
     }
     if (r.merged_at) {
@@ -76,7 +114,7 @@ function classFor(k: LogLine["kind"]): string {
   switch (k) {
     case "signal": return "log-signal";
     case "decision": return "log-decision";
-    case "stage": return "log-stage";
+    case "thought": return "log-thought";
     case "action": return "log-action";
     case "railway-cmd": return "log-railway";
     case "gh-cmd": return "log-gh";
@@ -84,6 +122,7 @@ function classFor(k: LogLine["kind"]): string {
     case "cmd": return "log-cmd";
     case "pr": return "log-pr";
     case "preview": return "log-railway";
+    case "rebuild": return "log-railway";
     case "merge": return "log-ok";
     case "error": return "log-err";
   }
@@ -94,16 +133,35 @@ function prefix(k: LogLine["kind"]): string {
     case "action": return "▸";
     case "signal": return "●";
     case "decision": return "→";
-    case "stage": return "·";
+    case "thought": return "💭";
     case "pr": return "↗";
     case "preview": return "◆";
+    case "rebuild": return "▣";
     case "merge": return "✓";
-    case "railway-cmd": return "$";
-    case "gh-cmd": return "$";
-    case "git-cmd": return "$";
+    case "railway-cmd":
+    case "gh-cmd":
+    case "git-cmd":
     case "cmd": return "$";
     case "error": return "✗";
   }
+}
+
+function renderText(line: LogLine): ReactElement {
+  // Bold the word "Railway" wherever it appears.
+  const parts = line.text.split(/(Railway)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p === "Railway" ? (
+          <strong key={i} className="railway-word">
+            {p}
+          </strong>
+        ) : (
+          <Fragment key={i}>{p}</Fragment>
+        )
+      )}
+    </>
+  );
 }
 
 export function TerminalLog(props: {
@@ -129,7 +187,7 @@ export function TerminalLog(props: {
           <div key={i} className={`log-line ${classFor(l.kind)}`}>
             <span className="log-ts">{new Date(l.ts).toLocaleTimeString()}</span>
             <span className="log-prefix">{prefix(l.kind)}</span>
-            <span className="log-text">{l.text}</span>
+            <span className="log-text">{renderText(l)}</span>
           </div>
         ))
       )}

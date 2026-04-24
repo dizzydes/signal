@@ -184,8 +184,10 @@ input[type="text"], textarea {
 .log-action .log-text, .log-action .log-prefix { color: #fef3c7; }
 .log-signal .log-text, .log-signal .log-prefix { color: #fbbf24; }
 .log-decision .log-text, .log-decision .log-prefix { color: #93c5fd; }
+.log-thought .log-text, .log-thought .log-prefix { color: #d8b4fe; font-style: italic; }
 .log-stage .log-text, .log-stage .log-prefix { color: var(--muted); }
 .log-railway .log-text, .log-railway .log-prefix { color: var(--railway); }
+.railway-word { color: var(--railway); font-weight: 700; letter-spacing: 0.02em; }
 .log-gh .log-text, .log-gh .log-prefix { color: var(--gh); }
 .log-git .log-text, .log-git .log-prefix { color: var(--git); }
 .log-cmd .log-text, .log-cmd .log-prefix { color: #d1d5db; }

@@ -12,6 +12,7 @@ export interface TimelineRow extends SignalRow {
   build_ms: number | null;
   merged_at: Date | null;
   transcript_commands: TranscriptCommand[] | null;
+  transcript_reasoning: string | null;
 }
 
 const STAGES: Array<{ status: string; label: string }> = [

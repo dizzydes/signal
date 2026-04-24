@@ -14,11 +14,12 @@ async function loadTimeline(): Promise<TimelineRow[]> {
             pr.services_skipped  AS services_skipped,
             pr.build_ms          AS build_ms,
             pr.merged_at         AS merged_at,
-            t.commands           AS transcript_commands
+            t.commands           AS transcript_commands,
+            t.reasoning          AS transcript_reasoning
      FROM signals s
      LEFT JOIN pull_requests pr ON pr.signal_id = s.id
      LEFT JOIN LATERAL (
-       SELECT commands FROM transcripts WHERE signal_id = s.id
+       SELECT commands, reasoning FROM transcripts WHERE signal_id = s.id
        ORDER BY created_at DESC LIMIT 1
      ) t ON true
      ORDER BY s.created_at DESC

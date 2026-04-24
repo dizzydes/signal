@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BreakControls } from "./BreakControls";
 import { Timeline, TimelineRow } from "./Timeline";
 import { PatientPanel } from "./PatientPanel";
@@ -48,6 +48,26 @@ export function DashboardClient(props: {
     };
   }, []);
 
+  // Auto-switch iframe to the most recent open-PR preview when one exists.
+  const { patientUrl, patientLabel } = useMemo(() => {
+    const open = rows.find(
+      (r) => r.pr_number && !r.merged_at && r.preview_url
+    );
+    if (open && open.preview_url) {
+      const host = previewPatientHost(open.preview_url);
+      if (host) {
+        return {
+          patientUrl: `https://${host}`,
+          patientLabel: `PR #${open.pr_number} preview`,
+        };
+      }
+    }
+    return {
+      patientUrl: props.defaultPatientUrl,
+      patientLabel: "production",
+    };
+  }, [rows, props.defaultPatientUrl]);
+
   return (
     <>
       <div className="topbar">
@@ -61,7 +81,7 @@ export function DashboardClient(props: {
           <h2>Break it</h2>
           <BreakControls onEvent={addEvent} />
         </div>
-        <PatientPanel url={props.defaultPatientUrl} />
+        <PatientPanel url={patientUrl} label={patientLabel} />
         <div className="panel">
           <h2>Signals</h2>
           <Timeline rows={rows} onEvent={addEvent} />
@@ -70,4 +90,14 @@ export function DashboardClient(props: {
       <TerminalLog rows={rows} clientEvents={clientEvents} />
     </>
   );
+}
+
+function previewPatientHost(dashboardPreviewUrl: string): string | null {
+  try {
+    const u = new URL(dashboardPreviewUrl);
+    const m = u.host.match(/^dashboard-web-(.+)$/);
+    return m ? `patient-web-${m[1]}` : u.host;
+  } catch {
+    return null;
+  }
 }
