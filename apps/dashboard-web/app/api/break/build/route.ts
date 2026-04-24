@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   const owner = process.env.GITHUB_OWNER ?? "dizzydes";
   const repo = process.env.GITHUB_REPO ?? "signal";
-  const path = "apps/patient-worker/package.json";
+  const path = "apps/patient-web/package.json";
 
   const result = await commitBrokenDependency({
     owner,

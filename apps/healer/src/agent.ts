@@ -130,7 +130,7 @@ function isAssistantMessage(m: unknown): m is { message?: { content?: Array<{ ty
 
 const SYSTEM_PROMPT = `You are an autonomous code-fixing agent working inside a fresh git clone of a monorepo.
 
-SCOPE: You may only modify files under apps/patient-web/ and apps/patient-worker/. Never touch apps/dashboard-web/, apps/poller/, apps/healer/, or packages/.
+SCOPE: You may only modify files under apps/patient-web/. Never touch apps/dashboard-web/, apps/poller/, or apps/healer/.
 
 You will be given a signal describing a bug or failure. Your job:
 1. Read the relevant file(s) to understand the issue.

@@ -1,8 +1,13 @@
 import express from "express";
+import chalk from "chalk";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 const failureRate = Math.min(1, Math.max(0, Number(process.env.FAILURE_RATE ?? 0)));
+const leak = process.env.MEMORY_LEAK === "1";
+
+const leakyBucket: string[] = [];
+let heartbeatCount = 0;
 
 app.get("/healthz", (_req, res) => {
   res.status(200).send("ok");
@@ -14,6 +19,11 @@ app.get("/api/status", (_req, res) => {
     return;
   }
   res.json({ ok: true, failureRate });
+});
+
+app.get("/heartbeat", (_req, res) => {
+  heartbeatCount += 1;
+  res.json({ ok: true, beats: heartbeatCount, leaking: leak });
 });
 
 app.get("/", (_req, res) => {
@@ -45,5 +55,12 @@ app.get("/", (_req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`[patient-web] listening on ${port} failureRate=${failureRate}`);
+  console.log(chalk.green(`[patient] listening on ${port} failureRate=${failureRate} leak=${leak}`));
 });
+
+setInterval(() => {
+  heartbeatCount += 1;
+  if (leak) {
+    leakyBucket.push("x".repeat(1024 * 128));
+  }
+}, 5_000);

@@ -5,8 +5,7 @@ const RAILWAY_API = "https://backboard.railway.com/graphql/v2";
 
 const PATIENT_FILES = [
   "apps/patient-web/src/index.ts",
-  "apps/patient-worker/package.json",
-  "apps/patient-worker/src/index.ts",
+  "apps/patient-web/package.json",
 ];
 
 function env(name: string, fallback?: string): string {

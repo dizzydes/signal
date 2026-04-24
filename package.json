@@ -9,7 +9,6 @@
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "dev:patient-web": "pnpm -F patient-web dev",
-    "dev:patient-worker": "pnpm -F patient-worker dev",
     "dev:dashboard-web": "pnpm -F dashboard-web dev",
     "dev:poller": "pnpm -F poller dev",
     "dev:healer": "pnpm -F healer dev",
