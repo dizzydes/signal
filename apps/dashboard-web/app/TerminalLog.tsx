@@ -179,18 +179,21 @@ export function TerminalLog(props: {
   }, [lines.length]);
 
   return (
-    <div className="terminal-log" ref={ref}>
-      {lines.length === 0 ? (
-        <div className="log-muted">waiting for activity…</div>
-      ) : (
-        lines.map((l, i) => (
-          <div key={i} className={`log-line ${classFor(l.kind)}`}>
-            <span className="log-ts">{new Date(l.ts).toLocaleTimeString()}</span>
-            <span className="log-prefix">{prefix(l.kind)}</span>
-            <span className="log-text">{renderText(l)}</span>
-          </div>
-        ))
-      )}
+    <div className="terminal-log-wrap">
+      <div className="terminal-log-title">agent x-ray</div>
+      <div className="terminal-log" ref={ref}>
+        {lines.length === 0 ? (
+          <div className="log-muted">waiting for activity…</div>
+        ) : (
+          lines.map((l, i) => (
+            <div key={i} className={`log-line ${classFor(l.kind)}`}>
+              <span className="log-ts">{new Date(l.ts).toLocaleTimeString()}</span>
+              <span className="log-prefix">{prefix(l.kind)}</span>
+              <span className="log-text">{renderText(l)}</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

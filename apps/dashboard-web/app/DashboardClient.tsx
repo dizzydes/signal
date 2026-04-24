@@ -95,7 +95,7 @@ export function DashboardClient(props: {
         </div>
         <PatientPanel url={patientUrl} label={patientLabel} />
         <div className="panel">
-          <h2>Signals</h2>
+          <h2>PRs</h2>
           <Timeline rows={rows} onEvent={addEvent} onMergeSuccess={onMergeSuccess} />
         </div>
       </div>

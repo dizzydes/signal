@@ -129,11 +129,6 @@ function TimelineEntry({
             PR #{row.pr_number}
           </a>
         )}
-        {row.preview_url && (
-          <a className="pill railway" href={row.preview_url} target="_blank" rel="noreferrer">
-            preview ↗
-          </a>
-        )}
         {row.build_ms != null && <span className="pill">build {(row.build_ms / 1000).toFixed(1)}s</span>}
         {row.services_rebuilt && row.services_rebuilt.length > 0 && (
           <span className="pill railway" title={row.services_rebuilt.join(", ")}>
