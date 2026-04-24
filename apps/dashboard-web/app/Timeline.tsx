@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SignalRow, TranscriptCommand } from "@signal/shared";
+import type { SignalRow, TranscriptCommand } from "../src/types";
 
 export interface TimelineRow extends SignalRow {
   pr_number: number | null;

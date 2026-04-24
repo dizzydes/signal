@@ -1,4 +1,4 @@
-import { getPool } from "@signal/shared";
+import { getPool } from "./db.js";
 import { pollRailwayDeployments, attachPreviewUrls } from "./railway.js";
 import { pollGithubPrs } from "./github.js";
 import { pollPosthog } from "./posthog.js";

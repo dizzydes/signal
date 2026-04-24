@@ -1,5 +1,5 @@
-import { getPool, query } from "@signal/shared";
-import type { SignalRow, TranscriptCommand } from "@signal/shared";
+import { getPool, query } from "./db.js";
+import type { SignalRow, TranscriptCommand } from "./types.js";
 import { classify } from "./classify.js";
 import { runAgentInSandbox } from "./agent.js";
 import { prepareSandbox, applyAndPush, cleanupSandbox } from "./sandbox.js";

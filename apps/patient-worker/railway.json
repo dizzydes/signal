@@ -2,16 +2,11 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "pnpm install --frozen-lockfile=false && pnpm -F patient-worker build",
-    "watchPatterns": [
-      "apps/patient-worker/**",
-      "pnpm-lock.yaml",
-      "pnpm-workspace.yaml",
-      "package.json"
-    ]
+    "buildCommand": "npm install && npm run build",
+    "watchPatterns": ["apps/patient-worker/**"]
   },
   "deploy": {
-    "startCommand": "pnpm -F patient-worker start",
+    "startCommand": "npm start",
     "healthcheckPath": "/healthz",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",

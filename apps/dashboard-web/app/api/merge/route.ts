@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { query } from "@signal/shared";
+import { query } from "../../../src/db";
 import { mergePullRequest } from "../../../src/github-client";
 
 export const dynamic = "force-dynamic";

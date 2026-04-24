@@ -1,4 +1,4 @@
-import type { SignalRow, Classification } from "@signal/shared";
+import type { SignalRow, Classification } from "./types.js";
 
 export async function classify(signal: SignalRow): Promise<Classification> {
   const source = signal.source;

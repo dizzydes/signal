@@ -1,5 +1,5 @@
-import { query } from "@signal/shared";
-import type { SignalRow, PullRequestRow, TranscriptRow } from "@signal/shared";
+import { query } from "../src/db";
+import type { SignalRow, PullRequestRow, TranscriptRow } from "../src/types";
 import { BreakControls } from "./BreakControls";
 import { Timeline } from "./Timeline";
 

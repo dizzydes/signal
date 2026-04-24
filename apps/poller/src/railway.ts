@@ -1,4 +1,4 @@
-import { query } from "@signal/shared";
+import { query } from "./db.js";
 
 const ENDPOINT = "https://backboard.railway.com/graphql/v2";
 

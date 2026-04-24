@@ -1,4 +1,4 @@
-import { query } from "@signal/shared";
+import { query } from "./db.js";
 
 function token(): string {
   const t = process.env.GITHUB_TOKEN;

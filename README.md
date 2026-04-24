@@ -11,13 +11,13 @@ A public demo site that monitors a "patient" service, detects breaks, and opens 
 | `apps/healer` | Node + Claude Agent SDK | Claims pending signals `FOR UPDATE SKIP LOCKED`, runs agent in sandboxed clone, opens PR |
 | `apps/patient-web` | Express | "Sigup" typo button + `/api/status` honouring `FAILURE_RATE` |
 | `apps/patient-worker` | Node | `/heartbeat` + `MEMORY_LEAK` toggle |
-| `packages/shared` | pg | Schema + migrations + `db`/`types` |
+
+Each service is a standalone npm package. Shared DB connection and signal types are inlined per service (`src/db.ts`, `src/types.ts`) so each can be built and deployed with its own root directory on Railway. Migration and reset scripts live at the repo root in `scripts/`.
 
 ## Local dev
 
 ```bash
 pnpm install
-pnpm -F @signal/shared build
 
 # migrate Postgres (requires DATABASE_URL)
 pnpm migrate
@@ -37,7 +37,7 @@ Each service has its own `railway.json` with `watchPatterns` so Focused PR Envir
 **One-time setup**
 
 1. Create a Railway project, provision a Postgres plugin.
-2. Create five services pointing at this repo:
+2. Create five services pointing at this repo, each with **Root Directory** set to its package folder and **Config File Path** left as default (`railway.json` at the root directory):
    - `dashboard-web` — root `apps/dashboard-web`
    - `poller` — root `apps/poller`
    - `healer` — root `apps/healer`

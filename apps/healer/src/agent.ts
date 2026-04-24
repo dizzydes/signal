@@ -1,5 +1,5 @@
 import { query as runAgent } from "@anthropic-ai/claude-agent-sdk";
-import type { SignalRow, TranscriptCommand } from "@signal/shared";
+import type { SignalRow, TranscriptCommand } from "./types.js";
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 

@@ -1,4 +1,4 @@
-import { query } from "@signal/shared";
+import { Client } from "pg";
 
 const GITHUB_API = "https://api.github.com";
 const RAILWAY_API = "https://backboard.railway.com/graphql/v2";
@@ -90,13 +90,20 @@ async function resetFailureRate(): Promise<void> {
 }
 
 async function clearSignals(minutes: number): Promise<void> {
-  const r = await query<{ n: string }>(
-    `WITH deleted AS (
-       DELETE FROM signals WHERE created_at < now() - ($1 || ' minutes')::interval RETURNING id
-     ) SELECT COUNT(*)::text AS n FROM deleted`,
-    [String(minutes)]
-  );
-  console.log(`[reset] cleared ${r[0].n} signals older than ${minutes}m`);
+  const url = env("DATABASE_URL");
+  const client = new Client({ connectionString: url });
+  await client.connect();
+  try {
+    const r = await client.query<{ n: string }>(
+      `WITH deleted AS (
+         DELETE FROM signals WHERE created_at < now() - ($1 || ' minutes')::interval RETURNING id
+       ) SELECT COUNT(*)::text AS n FROM deleted`,
+      [String(minutes)]
+    );
+    console.log(`[reset] cleared ${r.rows[0].n} signals older than ${minutes}m`);
+  } finally {
+    await client.end();
+  }
 }
 
 async function main(): Promise<void> {

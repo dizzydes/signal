@@ -2,17 +2,11 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "pnpm install --frozen-lockfile=false && pnpm -F @signal/shared build && pnpm -F healer build",
-    "watchPatterns": [
-      "apps/healer/**",
-      "packages/shared/**",
-      "pnpm-lock.yaml",
-      "pnpm-workspace.yaml",
-      "package.json"
-    ]
+    "buildCommand": "npm install && npm run build",
+    "watchPatterns": ["apps/healer/**"]
   },
   "deploy": {
-    "startCommand": "pnpm -F healer start",
+    "startCommand": "npm start",
     "restartPolicyType": "ALWAYS"
   }
 }
