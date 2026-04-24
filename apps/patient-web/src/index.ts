@@ -1,5 +1,4 @@
 import express from "express";
-import chalk from "chalk";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -55,7 +54,7 @@ app.get("/", (_req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(chalk.green(`[patient] listening on ${port} failureRate=${failureRate} leak=${leak}`));
+  console.log(`[patient] listening on ${port} failureRate=${failureRate} leak=${leak}`);
 });
 
 setInterval(() => {
