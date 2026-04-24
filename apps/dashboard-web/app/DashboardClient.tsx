@@ -17,12 +17,19 @@ export function DashboardClient(props: {
   const [rows, setRows] = useState(props.initialRows);
   const [railwayCount, setRailwayCount] = useState(props.initialRailwayCount);
   const [clientEvents, setClientEvents] = useState<ClientEvent[]>([]);
+  // After a successful merge, pin the iframe to production until a newer signal fires.
+  const [productionPinAfterId, setProductionPinAfterId] = useState<number | null>(null);
 
   const addEvent = useCallback((kind: "action" | "error", text: string) => {
     setClientEvents((prev) =>
       [...prev, { ts: new Date().toISOString(), kind, text }].slice(-MAX_CLIENT_EVENTS)
     );
   }, []);
+
+  const onMergeSuccess = useCallback(() => {
+    const maxId = rows.reduce((m, r) => Math.max(m, r.id), 0);
+    setProductionPinAfterId(maxId);
+  }, [rows]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,10 +55,15 @@ export function DashboardClient(props: {
     };
   }, []);
 
-  // Auto-switch iframe to the most recent open-PR preview when one exists.
+  // Auto-switch iframe to the most recent open-PR preview when one exists,
+  // unless we're pinned to production (e.g. just after a merge).
   const { patientUrl, patientLabel } = useMemo(() => {
     const open = rows.find(
-      (r) => r.pr_number && !r.merged_at && r.preview_url
+      (r) =>
+        r.pr_number &&
+        !r.merged_at &&
+        r.preview_url &&
+        (productionPinAfterId == null || r.id > productionPinAfterId)
     );
     if (open && open.preview_url) {
       const host = previewPatientHost(open.preview_url);
@@ -66,7 +78,7 @@ export function DashboardClient(props: {
       patientUrl: props.defaultPatientUrl,
       patientLabel: "production",
     };
-  }, [rows, props.defaultPatientUrl]);
+  }, [rows, props.defaultPatientUrl, productionPinAfterId]);
 
   return (
     <>
@@ -84,7 +96,7 @@ export function DashboardClient(props: {
         <PatientPanel url={patientUrl} label={patientLabel} />
         <div className="panel">
           <h2>Signals</h2>
-          <Timeline rows={rows} onEvent={addEvent} />
+          <Timeline rows={rows} onEvent={addEvent} onMergeSuccess={onMergeSuccess} />
         </div>
       </div>
       <TerminalLog rows={rows} clientEvents={clientEvents} />

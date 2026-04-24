@@ -31,9 +31,11 @@ function stageIndex(status: string): number {
 export function Timeline({
   rows,
   onEvent,
+  onMergeSuccess,
 }: {
   rows: TimelineRow[];
   onEvent?: (kind: "action" | "error", text: string) => void;
+  onMergeSuccess?: () => void;
 }) {
   if (rows.length === 0) {
     return <p style={{ color: "var(--muted)" }}>No signals yet. Trigger one from the left.</p>;
@@ -41,7 +43,7 @@ export function Timeline({
   return (
     <>
       {rows.map((r) => (
-        <TimelineEntry key={r.id} row={r} onEvent={onEvent} />
+        <TimelineEntry key={r.id} row={r} onEvent={onEvent} onMergeSuccess={onMergeSuccess} />
       ))}
     </>
   );
@@ -50,9 +52,11 @@ export function Timeline({
 function TimelineEntry({
   row,
   onEvent,
+  onMergeSuccess,
 }: {
   row: TimelineRow;
   onEvent?: (kind: "action" | "error", text: string) => void;
+  onMergeSuccess?: () => void;
 }) {
   const [merging, setMerging] = useState(false);
 
@@ -68,7 +72,8 @@ function TimelineEntry({
       });
       const j = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
       if (res.ok) {
-        onEvent?.("action", `PR #${row.pr_number} ${j.message ?? "merged"}`);
+        onEvent?.("action", `PR #${row.pr_number} ${j.message ?? "merged"} — iframe reloading production`);
+        onMergeSuccess?.();
       } else {
         onEvent?.("error", `merge PR #${row.pr_number} failed: ${j.error ?? `HTTP ${res.status}`}`);
       }
