@@ -167,10 +167,27 @@ function truncate(s: string, n: number): string {
   return s.length <= n ? s : s.slice(0, n - 1) + "…";
 }
 
+async function diagnoseAgentBinary(): Promise<void> {
+  const { execFile: ef } = await import("node:child_process");
+  const { promisify: p } = await import("node:util");
+  const run = p(ef);
+  const cliPath = new URL("../node_modules/@anthropic-ai/claude-agent-sdk/cli.js", import.meta.url).pathname;
+  try {
+    const { stdout, stderr } = await run("node", [cliPath, "--version"], { timeout: 30_000 });
+    console.log(`[diag] cli --version stdout=${stdout.trim()} stderr=${stderr.trim()}`);
+  } catch (err) {
+    const e = err as { stdout?: string; stderr?: string; code?: number; message?: string };
+    console.log(`[diag] cli --version FAILED code=${e.code} msg=${e.message}`);
+    console.log(`[diag] stdout=${(e.stdout ?? "").slice(0, 2000)}`);
+    console.log(`[diag] stderr=${(e.stderr ?? "").slice(0, 2000)}`);
+  }
+}
+
 async function main(): Promise<void> {
   console.log("[healer] starting");
   await getPool().query("SELECT 1");
   console.log("[healer] db connected");
+  await diagnoseAgentBinary();
 
   const inFlight = new Set<Promise<void>>();
   while (true) {
