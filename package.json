@@ -1,0 +1,23 @@
+{
+  "name": "signal",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "dev:patient-web": "pnpm -F patient-web dev",
+    "dev:patient-worker": "pnpm -F patient-worker dev",
+    "dev:dashboard-web": "pnpm -F dashboard-web dev",
+    "dev:poller": "pnpm -F poller dev",
+    "dev:healer": "pnpm -F healer dev",
+    "migrate": "pnpm -F @signal/shared migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2",
+    "@types/node": "^22.10.0"
+  }
+}
