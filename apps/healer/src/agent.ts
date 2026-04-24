@@ -38,6 +38,9 @@ export async function runAgentInSandbox(input: {
         allowedTools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep", "Skill"],
         settingSources: ["user", "project"],
         abortController: controller,
+        stderr: (data: string) => {
+          process.stderr.write(`[agent-stderr] ${data}`);
+        },
         hooks: {
           PreToolUse: [
             {
