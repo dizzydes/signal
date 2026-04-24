@@ -181,6 +181,26 @@ async function diagnoseAgentBinary(): Promise<void> {
     console.log(`[diag] stdout=${(e.stdout ?? "").slice(0, 2000)}`);
     console.log(`[diag] stderr=${(e.stderr ?? "").slice(0, 2000)}`);
   }
+
+  // Real query test — tests that auth + streaming + tooling all work
+  try {
+    const { stdout, stderr } = await run(
+      "node",
+      [cliPath, "-p", "Reply with the single word: pong", "--output-format", "text"],
+      {
+        timeout: 60_000,
+        env: { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "" },
+        maxBuffer: 4 * 1024 * 1024,
+      }
+    );
+    console.log(`[diag] cli query stdout=${stdout.trim().slice(0, 500)}`);
+    console.log(`[diag] cli query stderr=${stderr.trim().slice(0, 500)}`);
+  } catch (err) {
+    const e = err as { stdout?: string; stderr?: string; code?: number; message?: string };
+    console.log(`[diag] cli query FAILED code=${e.code} msg=${e.message}`);
+    console.log(`[diag] query stdout=${(e.stdout ?? "").slice(0, 2000)}`);
+    console.log(`[diag] query stderr=${(e.stderr ?? "").slice(0, 2000)}`);
+  }
 }
 
 async function main(): Promise<void> {
