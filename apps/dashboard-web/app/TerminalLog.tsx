@@ -23,9 +23,19 @@ interface LogLine {
     | "pr"
     | "preview"
     | "rebuild"
+    | "progress"
     | "merge"
     | "error";
   text: string;
+}
+
+function elapsed(fromIso: string): string {
+  const ms = Date.now() - new Date(fromIso).getTime();
+  if (ms < 1000) return "<1s";
+  if (ms < 60_000) return `${Math.floor(ms / 1000)}s`;
+  const m = Math.floor(ms / 60_000);
+  const s = Math.floor((ms % 60_000) / 1000);
+  return `${m}m${s.toString().padStart(2, "0")}s`;
 }
 
 function splitThought(reasoning: string): string[] {
@@ -77,11 +87,26 @@ function rowsToLines(rows: TimelineRow[]): LogLine[] {
         });
       }
     }
+    // In-flight progress heartbeat while the agent is working.
+    if (r.status === "healing" && r.claimed_at) {
+      out.push({
+        ts: new Date(r.claimed_at).toISOString(),
+        kind: "progress",
+        text: `${id} agent working… (${elapsed(new Date(r.claimed_at).toISOString())})`,
+      });
+    }
     if (r.pr_number) {
       out.push({
         ts: createdAt,
         kind: "pr",
         text: `${id} PR #${r.pr_number} opened  branch=${r.branch ?? "?"}`,
+      });
+    }
+    if (r.pr_number && !r.preview_url && !r.merged_at) {
+      out.push({
+        ts: createdAt,
+        kind: "progress",
+        text: `${id} waiting for Railway PR env to build…`,
       });
     }
     if (r.preview_url) {
@@ -115,6 +140,7 @@ function classFor(k: LogLine["kind"]): string {
     case "signal": return "log-signal";
     case "decision": return "log-decision";
     case "thought": return "log-thought";
+    case "progress": return "log-progress";
     case "action": return "log-action";
     case "railway-cmd": return "log-railway";
     case "gh-cmd": return "log-gh";
@@ -134,6 +160,7 @@ function prefix(k: LogLine["kind"]): string {
     case "signal": return "●";
     case "decision": return "→";
     case "thought": return "💭";
+    case "progress": return "…";
     case "pr": return "↗";
     case "preview": return "◆";
     case "rebuild": return "▣";

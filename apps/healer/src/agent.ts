@@ -31,7 +31,7 @@ export async function runAgentInSandbox(input: {
       prompt,
       options: {
         cwd: input.cwd,
-        model: process.env.AGENT_MODEL ?? "claude-sonnet-4-6",
+        model: process.env.AGENT_MODEL ?? "claude-haiku-4-5",
         systemPrompt: SYSTEM_PROMPT,
         permissionMode: "acceptEdits",
         maxTurns: 12,

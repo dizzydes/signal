@@ -160,25 +160,37 @@ export async function attachPreviewUrls(): Promise<void> {
     const instances = envById.get(env.id) ?? [];
     if (instances.length === 0) continue;
 
-    const dashboard = instances.find((s) => s.node.serviceName === "dashboard-web");
-    const domainHost = dashboard?.node.domains.serviceDomains[0]?.domain
-      ?? instances.flatMap((s) => s.node.domains.serviceDomains).map((d) => d.domain)[0];
-    const previewUrl = domainHost ? `https://${domainHost}` : null;
-
     const rebuilt: string[] = [];
     const skipped: string[] = [];
     let earliest = Infinity;
     let latest = 0;
+    let allRebuiltSuccess = true;
     for (const s of instances) {
       const st = s.node.latestDeployment?.status;
-      if (st === "SKIPPED") skipped.push(s.node.serviceName);
-      else if (st) rebuilt.push(s.node.serviceName);
+      if (st === "SKIPPED") {
+        skipped.push(s.node.serviceName);
+      } else if (st) {
+        rebuilt.push(s.node.serviceName);
+        if (st !== "SUCCESS") allRebuiltSuccess = false;
+      } else {
+        allRebuiltSuccess = false;
+      }
       if (s.node.latestDeployment) {
         earliest = Math.min(earliest, Date.parse(s.node.latestDeployment.createdAt));
         latest = Math.max(latest, Date.parse(s.node.latestDeployment.updatedAt));
       }
     }
     const buildMs = earliest !== Infinity && latest > 0 ? latest - earliest : null;
+
+    if (!allRebuiltSuccess || rebuilt.length === 0) {
+      console.log(`[poller/railway] PR #${github_pr_number} env still building (rebuilt=${rebuilt.length} skipped=${skipped.length})`);
+      continue;
+    }
+
+    const dashboard = instances.find((s) => s.node.serviceName === "dashboard-web");
+    const domainHost = dashboard?.node.domains.serviceDomains[0]?.domain
+      ?? instances.flatMap((s) => s.node.domains.serviceDomains).map((d) => d.domain)[0];
+    const previewUrl = domainHost ? `https://${domainHost}` : null;
 
     await query(
       `UPDATE pull_requests
