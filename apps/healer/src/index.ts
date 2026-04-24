@@ -167,74 +167,10 @@ function truncate(s: string, n: number): string {
   return s.length <= n ? s : s.slice(0, n - 1) + "…";
 }
 
-async function diagnoseAgentBinary(): Promise<void> {
-  const { execFile: ef } = await import("node:child_process");
-  const { promisify: p } = await import("node:util");
-  const run = p(ef);
-  const cliPath = new URL("../node_modules/@anthropic-ai/claude-agent-sdk/cli.js", import.meta.url).pathname;
-  try {
-    const { stdout, stderr } = await run("node", [cliPath, "--version"], { timeout: 30_000 });
-    console.log(`[diag] cli --version stdout=${stdout.trim()} stderr=${stderr.trim()}`);
-  } catch (err) {
-    const e = err as { stdout?: string; stderr?: string; code?: number; message?: string };
-    console.log(`[diag] cli --version FAILED code=${e.code} msg=${e.message}`);
-    console.log(`[diag] stdout=${(e.stdout ?? "").slice(0, 2000)}`);
-    console.log(`[diag] stderr=${(e.stderr ?? "").slice(0, 2000)}`);
-  }
-
-  // Real query test — spawn with explicit stdin close and verbose logging.
-  const { spawn } = await import("node:child_process");
-  await new Promise<void>((resolve) => {
-    const child = spawn(
-      "node",
-      [
-        cliPath,
-        "-p",
-        "Reply with exactly: pong",
-        "--output-format",
-        "text",
-        "--dangerously-skip-permissions",
-      ],
-      {
-        env: {
-          ...process.env,
-          DISABLE_AUTOUPDATER: "1",
-          DISABLE_TELEMETRY: "1",
-          IS_SANDBOX: "1",
-          CLAUDE_CODE_NONINTERACTIVE: "1",
-        },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
-    let stdoutAcc = "";
-    let stderrAcc = "";
-    child.stdout.on("data", (d) => {
-      stdoutAcc += d.toString();
-      console.log(`[diag/q-stdout] ${d.toString().slice(0, 500)}`);
-    });
-    child.stderr.on("data", (d) => {
-      stderrAcc += d.toString();
-      console.log(`[diag/q-stderr] ${d.toString().slice(0, 500)}`);
-    });
-    const killer = setTimeout(() => {
-      console.log("[diag] query timing out, killing");
-      child.kill("SIGKILL");
-    }, 45_000);
-    child.on("close", (code, signal) => {
-      clearTimeout(killer);
-      console.log(
-        `[diag] query closed code=${code} signal=${signal} stdoutLen=${stdoutAcc.length} stderrLen=${stderrAcc.length}`
-      );
-      resolve();
-    });
-  });
-}
-
 async function main(): Promise<void> {
   console.log("[healer] starting");
   await getPool().query("SELECT 1");
   console.log("[healer] db connected");
-  await diagnoseAgentBinary();
 
   const inFlight = new Set<Promise<void>>();
   while (true) {
