@@ -182,25 +182,52 @@ async function diagnoseAgentBinary(): Promise<void> {
     console.log(`[diag] stderr=${(e.stderr ?? "").slice(0, 2000)}`);
   }
 
-  // Real query test — tests that auth + streaming + tooling all work
-  try {
-    const { stdout, stderr } = await run(
+  // Real query test — spawn with explicit stdin close and verbose logging.
+  const { spawn } = await import("node:child_process");
+  await new Promise<void>((resolve) => {
+    const child = spawn(
       "node",
-      [cliPath, "-p", "Reply with the single word: pong", "--output-format", "text"],
+      [
+        cliPath,
+        "-p",
+        "Reply with exactly: pong",
+        "--output-format",
+        "text",
+        "--dangerously-skip-permissions",
+      ],
       {
-        timeout: 60_000,
-        env: { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "" },
-        maxBuffer: 4 * 1024 * 1024,
+        env: {
+          ...process.env,
+          DISABLE_AUTOUPDATER: "1",
+          DISABLE_TELEMETRY: "1",
+          IS_SANDBOX: "1",
+          CLAUDE_CODE_NONINTERACTIVE: "1",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
       }
     );
-    console.log(`[diag] cli query stdout=${stdout.trim().slice(0, 500)}`);
-    console.log(`[diag] cli query stderr=${stderr.trim().slice(0, 500)}`);
-  } catch (err) {
-    const e = err as { stdout?: string; stderr?: string; code?: number; message?: string };
-    console.log(`[diag] cli query FAILED code=${e.code} msg=${e.message}`);
-    console.log(`[diag] query stdout=${(e.stdout ?? "").slice(0, 2000)}`);
-    console.log(`[diag] query stderr=${(e.stderr ?? "").slice(0, 2000)}`);
-  }
+    let stdoutAcc = "";
+    let stderrAcc = "";
+    child.stdout.on("data", (d) => {
+      stdoutAcc += d.toString();
+      console.log(`[diag/q-stdout] ${d.toString().slice(0, 500)}`);
+    });
+    child.stderr.on("data", (d) => {
+      stderrAcc += d.toString();
+      console.log(`[diag/q-stderr] ${d.toString().slice(0, 500)}`);
+    });
+    const killer = setTimeout(() => {
+      console.log("[diag] query timing out, killing");
+      child.kill("SIGKILL");
+    }, 45_000);
+    child.on("close", (code, signal) => {
+      clearTimeout(killer);
+      console.log(
+        `[diag] query closed code=${code} signal=${signal} stdoutLen=${stdoutAcc.length} stderrLen=${stderrAcc.length}`
+      );
+      resolve();
+    });
+  });
 }
 
 async function main(): Promise<void> {
