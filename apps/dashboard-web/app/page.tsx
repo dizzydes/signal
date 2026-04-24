@@ -1,20 +1,8 @@
 import { query } from "../src/db";
-import type { SignalRow, PullRequestRow, TranscriptRow } from "../src/types";
-import { BreakControls } from "./BreakControls";
-import { Timeline } from "./Timeline";
+import { DashboardClient } from "./DashboardClient";
+import type { TimelineRow } from "./Timeline";
 
 export const dynamic = "force-dynamic";
-
-interface TimelineRow extends SignalRow {
-  pr_number: number | null;
-  branch: string | null;
-  preview_url: string | null;
-  services_rebuilt: string[] | null;
-  services_skipped: string[] | null;
-  build_ms: number | null;
-  merged_at: Date | null;
-  transcript_commands: TranscriptRow["commands"] | null;
-}
 
 async function loadTimeline(): Promise<TimelineRow[]> {
   return query<TimelineRow>(
@@ -50,33 +38,17 @@ async function loadRailwayCommandCount(): Promise<number> {
 }
 
 export default async function HomePage() {
-  const patientUrl = process.env.PATIENT_WEB_URL ?? "http://localhost:3001";
+  const defaultPatientUrl = process.env.PATIENT_WEB_URL ?? "http://localhost:3001";
   const [rows, railwayCount] = await Promise.all([
     loadTimeline().catch(() => [] as TimelineRow[]),
     loadRailwayCommandCount().catch(() => 0),
   ]);
 
   return (
-    <>
-      <div className="topbar">
-        <div className="brand">Autoheal</div>
-        <div className="counter">
-          Railway commands executed by agents: <strong>{railwayCount}</strong>
-        </div>
-      </div>
-      <div className="layout">
-        <div className="panel">
-          <h2>Break it</h2>
-          <BreakControls />
-        </div>
-        <div className="panel" style={{ padding: 0 }}>
-          <iframe className="patient-frame" src={patientUrl} title="Patient" />
-        </div>
-        <div className="panel">
-          <h2>Timeline</h2>
-          <Timeline rows={rows} />
-        </div>
-      </div>
-    </>
+    <DashboardClient
+      initialRows={rows}
+      initialRailwayCount={railwayCount}
+      defaultPatientUrl={defaultPatientUrl}
+    />
   );
 }

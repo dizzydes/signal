@@ -94,9 +94,58 @@ input[type="text"], textarea {
 
 .patient-frame {
   width: 100%;
-  height: 100%;
+  flex: 1;
   border: 0;
   background: white;
+}
+.patient-tag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.patient-tag-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+.patient-tag-value { font-weight: 600; }
+.patient-tag-value.ok { color: var(--ok); }
+.patient-tag-value.railway { color: var(--railway); }
+.patient-tag-host { color: var(--muted); margin-left: 8px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
+
+.stage-track {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 10px;
+  align-items: center;
+}
+.stage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.4;
+}
+.stage.reached { opacity: 1; }
+.stage.done .stage-dot { background: var(--ok); border-color: var(--ok); }
+.stage.active .stage-dot {
+  background: var(--railway);
+  border-color: var(--railway);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 121, 255, 0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(200, 121, 255, 0); }
 }
 
 .timeline-entry {

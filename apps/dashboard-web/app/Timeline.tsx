@@ -21,36 +21,68 @@ function cmdClass(command: string): string {
   return "cmd";
 }
 
-export function Timeline({ rows }: { rows: TimelineRow[] }) {
+const STAGES: Array<{ status: string; label: string }> = [
+  { status: "pending", label: "queued" },
+  { status: "classifying", label: "classifying" },
+  { status: "healing", label: "healing" },
+  { status: "pr_open", label: "PR open" },
+  { status: "merged", label: "merged" },
+];
+
+function stageIndex(status: string): number {
+  const i = STAGES.findIndex((s) => s.status === status);
+  return i === -1 ? 0 : i;
+}
+
+export function Timeline({
+  rows,
+  onViewPatient,
+}: {
+  rows: TimelineRow[];
+  onViewPatient: (url: string, label: string) => void;
+}) {
   if (rows.length === 0) {
     return <p style={{ color: "var(--muted)" }}>No signals yet. Trigger one from the left.</p>;
   }
   return (
     <>
       {rows.map((r) => (
-        <TimelineEntry key={r.id} row={r} />
+        <TimelineEntry key={r.id} row={r} onViewPatient={onViewPatient} />
       ))}
     </>
   );
 }
 
-function TimelineEntry({ row }: { row: TimelineRow }) {
+function TimelineEntry({
+  row,
+  onViewPatient,
+}: {
+  row: TimelineRow;
+  onViewPatient: (url: string, label: string) => void;
+}) {
   const [showTranscript, setShowTranscript] = useState(false);
   const [merging, setMerging] = useState(false);
 
   async function merge() {
     if (!row.pr_number) return;
     setMerging(true);
-    await fetch("/api/merge", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ pr_number: row.pr_number }),
-    });
-    setMerging(false);
+    try {
+      await fetch("/api/merge", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pr_number: row.pr_number }),
+      });
+    } finally {
+      setMerging(false);
+    }
   }
 
   const title = describeSignal(row);
   const hasTranscript = Array.isArray(row.transcript_commands) && row.transcript_commands.length > 0;
+  const isTerminal = row.status === "merged" || row.status === "ignored" || row.status === "failed";
+  const currentStageIdx = stageIndex(row.status);
+  const railwayCmdCount =
+    row.transcript_commands?.filter((c) => c.command.startsWith("railway")).length ?? 0;
 
   return (
     <div className="timeline-entry">
@@ -59,6 +91,25 @@ function TimelineEntry({ row }: { row: TimelineRow }) {
         <span className="timeline-source">{new Date(row.created_at).toLocaleTimeString()}</span>
       </div>
       <div className="timeline-title">{title}</div>
+
+      <div className="stage-track">
+        {STAGES.map((s, i) => {
+          const done = i < currentStageIdx;
+          const active = i === currentStageIdx && !isTerminal;
+          const reached = i <= currentStageIdx;
+          return (
+            <div
+              key={s.status}
+              className={`stage ${done ? "done" : ""} ${active ? "active" : ""} ${reached ? "reached" : ""}`}
+              title={s.label}
+            >
+              <span className="stage-dot" />
+              <span className="stage-label">{s.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="timeline-meta">
         <span className={`pill ${statusClass(row.status)}`}>{row.status}</span>
         {row.classification && <span className="pill">{row.classification}</span>}
@@ -74,28 +125,47 @@ function TimelineEntry({ row }: { row: TimelineRow }) {
         )}
         {row.preview_url && (
           <a className="pill railway" href={row.preview_url} target="_blank" rel="noreferrer">
-            preview
+            preview ↗
           </a>
         )}
         {row.build_ms != null && <span className="pill">build {(row.build_ms / 1000).toFixed(1)}s</span>}
         {row.services_rebuilt && row.services_rebuilt.length > 0 && (
-          <span className="pill railway">rebuilt {row.services_rebuilt.length}</span>
+          <span className="pill railway" title={row.services_rebuilt.join(", ")}>
+            rebuilt {row.services_rebuilt.length}
+          </span>
         )}
         {row.services_skipped && row.services_skipped.length > 0 && (
-          <span className="pill">skipped {row.services_skipped.length}</span>
+          <span className="pill" title={row.services_skipped.join(", ")}>
+            skipped {row.services_skipped.length}
+          </span>
+        )}
+        {railwayCmdCount > 0 && (
+          <span className="pill railway">railway {railwayCmdCount}</span>
         )}
         {row.merged_at && <span className="pill ok">merged</span>}
       </div>
 
-      <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+      <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {row.preview_url && row.branch && (
+          <button
+            onClick={() =>
+              onViewPatient(
+                previewPatientUrl(row.preview_url!) ?? row.preview_url!,
+                `PR #${row.pr_number}`
+              )
+            }
+          >
+            view patient here
+          </button>
+        )}
         {hasTranscript && (
           <button onClick={() => setShowTranscript((s) => !s)}>
-            {showTranscript ? "Hide" : "Show"} transcript
+            {showTranscript ? "hide" : "show"} transcript
           </button>
         )}
         {row.pr_number && !row.merged_at && (
           <button className="primary" onClick={merge} disabled={merging}>
-            {merging ? "Merging…" : "Merge"}
+            {merging ? "merging…" : "merge"}
           </button>
         )}
       </div>
@@ -115,6 +185,18 @@ function TimelineEntry({ row }: { row: TimelineRow }) {
   );
 }
 
+function previewPatientUrl(previewUrl: string): string | null {
+  // Railway PR env preview URL is for dashboard-web; swap the subdomain to patient-web.
+  try {
+    const u = new URL(previewUrl);
+    const m = u.host.match(/^(dashboard-web)-(.+)$/);
+    if (m) return `${u.protocol}//patient-web-${m[2]}`;
+    return previewUrl;
+  } catch {
+    return null;
+  }
+}
+
 function statusClass(s: string): string {
   if (s === "merged" || s === "pr_open") return "ok";
   if (s === "failed") return "err";
@@ -127,6 +209,7 @@ function describeSignal(row: TimelineRow): string {
   if (p?.summary) return p.summary;
   switch (row.source) {
     case "synthetic.typo": return "Typo on landing page: 'Sigup'";
+    case "synthetic.failure_rate": return "patient-web /api/status returning 5xx";
     case "railway.logs": return "Error spike in Railway logs";
     case "railway.deployment": return "Deployment failed";
     case "github.workflow": return "GitHub workflow failed";
