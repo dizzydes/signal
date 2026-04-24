@@ -57,6 +57,8 @@ export function DashboardClient(props: {
 
   // Auto-switch iframe to the most recent open-PR preview when one exists,
   // unless we're pinned to production (e.g. just after a merge).
+  // preview_url is patient-web's PR domain, set by the poller only after
+  // patient-web in the PR env is SUCCESS.
   const { patientUrl, patientLabel } = useMemo(() => {
     const open = rows.find(
       (r) =>
@@ -66,13 +68,10 @@ export function DashboardClient(props: {
         (productionPinAfterId == null || r.id > productionPinAfterId)
     );
     if (open && open.preview_url) {
-      const host = previewPatientHost(open.preview_url);
-      if (host) {
-        return {
-          patientUrl: `https://${host}`,
-          patientLabel: `PR #${open.pr_number} preview`,
-        };
-      }
+      return {
+        patientUrl: open.preview_url,
+        patientLabel: `PR #${open.pr_number} preview`,
+      };
     }
     return {
       patientUrl: props.defaultPatientUrl,
@@ -113,12 +112,3 @@ export function DashboardClient(props: {
   );
 }
 
-function previewPatientHost(dashboardPreviewUrl: string): string | null {
-  try {
-    const u = new URL(dashboardPreviewUrl);
-    const m = u.host.match(/^dashboard-web-(.+)$/);
-    return m ? `patient-web-${m[1]}` : u.host;
-  } catch {
-    return null;
-  }
-}

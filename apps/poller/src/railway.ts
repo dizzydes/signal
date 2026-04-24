@@ -160,37 +160,34 @@ export async function attachPreviewUrls(): Promise<void> {
     const instances = envById.get(env.id) ?? [];
     if (instances.length === 0) continue;
 
+    // The iframe we want to show is patient-web. That service has its own
+    // deployment status + domain in the PR env. Only attach when it's SUCCESS.
+    const patient = instances.find((s) => s.node.serviceName === "patient-web");
+    const patientStatus = patient?.node.latestDeployment?.status;
+    const patientDomain = patient?.node.domains?.serviceDomains?.[0]?.domain;
+
+    if (patientStatus !== "SUCCESS" || !patientDomain) {
+      console.log(
+        `[poller/railway] PR #${github_pr_number} patient-web not ready (status=${patientStatus ?? "null"})`
+      );
+      continue;
+    }
+
     const rebuilt: string[] = [];
     const skipped: string[] = [];
     let earliest = Infinity;
     let latest = 0;
-    let allRebuiltSuccess = true;
     for (const s of instances) {
       const st = s.node.latestDeployment?.status;
-      if (st === "SKIPPED") {
-        skipped.push(s.node.serviceName);
-      } else if (st) {
-        rebuilt.push(s.node.serviceName);
-        if (st !== "SUCCESS") allRebuiltSuccess = false;
-      } else {
-        allRebuiltSuccess = false;
-      }
+      if (st === "SKIPPED") skipped.push(s.node.serviceName);
+      else if (st === "SUCCESS") rebuilt.push(s.node.serviceName);
       if (s.node.latestDeployment) {
         earliest = Math.min(earliest, Date.parse(s.node.latestDeployment.createdAt));
         latest = Math.max(latest, Date.parse(s.node.latestDeployment.updatedAt));
       }
     }
     const buildMs = earliest !== Infinity && latest > 0 ? latest - earliest : null;
-
-    if (!allRebuiltSuccess || rebuilt.length === 0) {
-      console.log(`[poller/railway] PR #${github_pr_number} env still building (rebuilt=${rebuilt.length} skipped=${skipped.length})`);
-      continue;
-    }
-
-    const dashboard = instances.find((s) => s.node.serviceName === "dashboard-web");
-    const domainHost = dashboard?.node.domains.serviceDomains[0]?.domain
-      ?? instances.flatMap((s) => s.node.domains.serviceDomains).map((d) => d.domain)[0];
-    const previewUrl = domainHost ? `https://${domainHost}` : null;
+    const previewUrl = `https://${patientDomain}`;
 
     await query(
       `UPDATE pull_requests
@@ -201,6 +198,8 @@ export async function attachPreviewUrls(): Promise<void> {
        WHERE github_pr_number = $5`,
       [previewUrl, rebuilt, skipped, buildMs, github_pr_number]
     );
-    console.log(`[poller/railway] PR #${github_pr_number} preview=${previewUrl} rebuilt=${rebuilt.length} skipped=${skipped.length}`);
+    console.log(
+      `[poller/railway] PR #${github_pr_number} patient preview=${previewUrl} rebuilt=${rebuilt.length} skipped=${skipped.length}`
+    );
   }
 }
