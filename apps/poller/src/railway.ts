@@ -13,7 +13,7 @@ async function gql<T>(q: string, variables: Record<string, unknown>): Promise<T>
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${railwayToken()}`,
+      "project-access-token": railwayToken(),
     },
     body: JSON.stringify({ query: q, variables }),
   });

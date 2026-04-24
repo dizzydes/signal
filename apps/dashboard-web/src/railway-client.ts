@@ -11,7 +11,7 @@ async function gql<T>(query: string, variables: Record<string, unknown>): Promis
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${token()}`,
+      "project-access-token": token(),
     },
     body: JSON.stringify({ query, variables }),
     cache: "no-store",
