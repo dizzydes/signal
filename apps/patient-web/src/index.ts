@@ -46,7 +46,7 @@ app.get("/", (_req, res) => {
     <p id="status" style="margin-top: 32px;">failure rate: ${failureRate}</p>
     <script>
       document.getElementById("cta").addEventListener("click", () => {
-        alert("(This button is labelled wrong on purpose.)");
+        alert("Thanks for signing up!");
       });
     </script>
   </body>
