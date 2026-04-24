@@ -8,3 +8,5 @@ dist
 .env.local
 .DS_Store
 /tmp-sandbox
+/tmp
+.claude/settings.local.json

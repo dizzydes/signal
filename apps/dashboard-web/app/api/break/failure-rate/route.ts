@@ -27,17 +27,21 @@ export async function POST(req: Request) {
     value: String(clamped),
   });
 
-  await query(
-    `INSERT INTO signals (source, payload, status)
-     VALUES ('synthetic.typo', $1::jsonb, 'pending')`,
-    [
-      JSON.stringify({
-        title: `patient-web configured with FAILURE_RATE=${clamped}`,
-        source_tag: "config_change",
-        summary: "Failure rate knob turned. Poller will file a signal if 5xx rate crosses threshold.",
-      }),
-    ]
-  );
+  if (clamped > 0) {
+    await query(
+      `INSERT INTO signals (source, payload, status)
+       VALUES ('synthetic.failure_rate', $1::jsonb, 'pending')`,
+      [
+        JSON.stringify({
+          title: `patient-web /api/status returning 5xx at ${Math.round(clamped * 100)}%`,
+          file: "apps/patient-web/src/index.ts",
+          summary:
+            "Production users are seeing intermittent 500s from /api/status. Remove the failure-rate branch from the endpoint handler so it always returns a healthy response.",
+          failure_rate: clamped,
+        }),
+      ]
+    );
+  }
 
   return NextResponse.json({ message: `FAILURE_RATE set to ${clamped}` });
 }

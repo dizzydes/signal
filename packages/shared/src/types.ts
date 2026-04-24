@@ -1,5 +1,6 @@
 export type SignalSource =
   | "synthetic.typo"
+  | "synthetic.failure_rate"
   | "railway.logs"
   | "railway.deployment"
   | "github.workflow"
