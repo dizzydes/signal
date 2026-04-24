@@ -64,3 +64,30 @@ export async function mergePullRequest(input: {
     body: JSON.stringify({ merge_method: "squash" }),
   });
 }
+
+export async function reintroduceTypoIfMissing(input: {
+  owner: string;
+  repo: string;
+  branch: string;
+}): Promise<{ committed: boolean }> {
+  const path = "apps/patient-web/src/index.ts";
+  const fileRes = await gh<{ sha: string; content: string; encoding: string }>(
+    `/repos/${input.owner}/${input.repo}/contents/${encodeURIComponent(path)}?ref=${input.branch}`
+  );
+  const content = Buffer.from(fileRes.content, fileRes.encoding as BufferEncoding).toString("utf8");
+
+  if (content.includes(">Sigup<")) return { committed: false };
+  const next = content.replace(">Sign up<", ">Sigup<");
+  if (next === content) return { committed: false };
+
+  await gh(`/repos/${input.owner}/${input.repo}/contents/${encodeURIComponent(path)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: "demo: re-introduce Sigup typo",
+      content: Buffer.from(next, "utf8").toString("base64"),
+      sha: fileRes.sha,
+      branch: input.branch,
+    }),
+  });
+  return { committed: true };
+}
