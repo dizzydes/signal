@@ -42,7 +42,7 @@ app.get("/", (_req, res) => {
   <body>
     <h1>Patient</h1>
     <p>This is a minimal app that a healing loop watches over.</p>
-    <button id="cta">Sign up</button>
+    <button id="cta">Sigup</button>
     <p id="status" style="margin-top: 32px;">failure rate: ${failureRate}</p>
     <script>
       document.getElementById("cta").addEventListener("click", () => {
