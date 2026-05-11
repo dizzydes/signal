@@ -13,10 +13,6 @@ app.get("/healthz", (_req, res) => {
 });
 
 app.get("/api/status", (_req, res) => {
-  if (Math.random() < failureRate) {
-    res.status(500).json({ ok: false, error: "simulated failure" });
-    return;
-  }
   res.json({ ok: true, failureRate });
 });
 
